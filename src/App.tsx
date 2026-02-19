@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { hashString } from './lib/hash'
 import { mapHashToConfig } from './lib/parameterMapper'
 import type { VisualConfig } from './lib/types'
-import { FingerprintCanvas } from './components/FingerprintCanvas'
+import { FingerprintSquares } from './components/FingerprintSquares'
 
 const EXAMPLE_INPUTS = [
   'https://mcp.example.com/agents/gpt-4o',
@@ -49,7 +49,7 @@ function GridItem({ input }: { input: string }) {
       className="relative group rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800"
       style={{ aspectRatio: '1' }}
     >
-      <FingerprintCanvas config={config} interactive={false} />
+      <FingerprintSquares config={config} interactive={false} />
       <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/60 text-[10px] text-zinc-400 truncate opacity-0 group-hover:opacity-100 transition-opacity">
         {input}
       </div>
@@ -133,7 +133,7 @@ export default function App() {
                 className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900"
                 style={{ height: 320 }}
               >
-                <FingerprintCanvas config={mainConfig} interactive />
+                <FingerprintSquares config={mainConfig} interactive />
               </motion.div>
             )}
           </AnimatePresence>
