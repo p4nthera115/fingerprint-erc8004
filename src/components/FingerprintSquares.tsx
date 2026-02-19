@@ -12,11 +12,23 @@
 
 import type { VisualConfig } from "../lib/types"
 
+/** One pixel of a pixelated logo: its color and how opaque it should be. */
+export interface LogoPixel {
+  color: string  // CSS color, e.g. "rgb(r,g,b)"
+  opacity: number // 0 (transparent → pattern shows) … 1 (fully opaque)
+}
+
 interface Props {
   config: VisualConfig
   /** Accepted for renderer-agnostic callers; unused in this renderer. */
   interactive?: boolean
   className?: string
+  /**
+   * Optional 81-element array (9×9, row-major). The hash-derived binary pattern
+   * is always rendered as the base layer; these pixels are composited on top so
+   * the pattern shows through wherever the logo is light/transparent.
+   */
+  logoCorner?: LogoPixel[]
 }
 
 // ── Grid constants ────────────────────────────────────────────────────────────
@@ -105,6 +117,7 @@ function cellPattern(
 export function FingerprintSquares({
   config,
   className = "w-full h-full",
+  logoCorner,
 }: Props) {
   const seed1 = config.patternDensity * 100 + config.shimmerIntensity * 10
   const seed2 = config.breatheScale * 100 + config.colorShift * 100
@@ -212,20 +225,40 @@ export function FingerprintSquares({
       )}
 
       {/* ── Detail corner — 9×9 binary sub-grid (top-left) ── */}
-      {Array.from({ length: SUB_TOTAL }, (_, sy) =>
-        Array.from({ length: SUB_TOTAL }, (_, sx) => (
-          <rect
-            key={`s-${sx}-${sy}`}
-            x={sx * SUB_CELL}
-            y={sy * SUB_CELL}
-            width={SUB_CELL}
-            height={SUB_CELL}
-            fill={
-              cellHash(sx + 97.3, sy + 113.7, seed1, seed2) > 0.5 ? INK : PAPER
-            }
-          />
-        ))
-      )}
+      {/* Base layer: always the hash-derived binary pattern; dimmed when logo overlays it */}
+      <g opacity={logoCorner ? 0.1 : 1}>
+        {Array.from({ length: SUB_TOTAL }, (_, sy) =>
+          Array.from({ length: SUB_TOTAL }, (_, sx) => (
+            <rect
+              key={`s-${sx}-${sy}`}
+              x={sx * SUB_CELL}
+              y={sy * SUB_CELL}
+              width={SUB_CELL}
+              height={SUB_CELL}
+              fill={cellHash(sx + 97.3, sy + 113.7, seed1, seed2) > 0.5 ? INK : PAPER}
+            />
+          ))
+        )}
+      </g>
+      {/* Logo overlay: composited on top; opacity reveals the pattern behind */}
+      {logoCorner &&
+        Array.from({ length: SUB_TOTAL }, (_, sy) =>
+          Array.from({ length: SUB_TOTAL }, (_, sx) => {
+            const p = logoCorner[sy * SUB_TOTAL + sx]
+            if (p.opacity < 0.04) return null
+            return (
+              <rect
+                key={`l-${sx}-${sy}`}
+                x={sx * SUB_CELL}
+                y={sy * SUB_CELL}
+                width={SUB_CELL}
+                height={SUB_CELL}
+                fill={p.color}
+                opacity={p.opacity}
+              />
+            )
+          })
+        )}
     </svg>
   )
 }
