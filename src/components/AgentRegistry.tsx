@@ -450,15 +450,17 @@ export function AgentRegistry({
             <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
               Agent
             </p>
-            <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
-              Protocol
-            </p>
-            <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
-              Status
-            </p>
-            <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
-              Rep
-            </p>
+            <div className="flex gap-9 pr-1">
+              <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
+                Protocol
+              </p>
+              <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
+                Status
+              </p>
+              <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
+                Rep
+              </p>
+            </div>
           </div>
 
           {/* Agent list */}
