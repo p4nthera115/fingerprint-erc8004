@@ -12,9 +12,3 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-button {
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  padding: 0;
-}

@@ -39,6 +39,9 @@ export interface VisualConfig {
   shimmerIntensity: number  // 0–1
   colorShift: number        // 0–1
   breatheScale: number      // 0–1
+
+  // Reputation score — placeholder until ERC-8004 is connected
+  reputationScore: number   // 0–100 (integer)
 }
 
 export type GeometryClass =

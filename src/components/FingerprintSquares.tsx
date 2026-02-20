@@ -2,49 +2,86 @@
  * FingerprintSquares — SVG square-grid renderer.
  *
  * Renders a 9×9 grid of solid squares on a dark background.
- * The top-left 3×3 cells are replaced by a 9×9 binary sub-grid,
- * unique per fingerprint. The remaining cells use concentric rings
- * with continuous grayscale fill. Rings carry a subtle radial depth
- * gradient — valleys between rings darken toward the center, giving
- * a concave bowl feel. A handful of accent cells carry the
- * fingerprint's primary hue with a subtle CSS shimmer animation.
+ * The top-left 3×3 cells show the agent's ERC-8004 reputation score.
+ * The remaining cells use concentric rings with continuous grayscale fill.
+ * Rings carry a subtle radial depth gradient — valleys between rings darken
+ * toward the center, giving a concave bowl feel. A handful of accent cells
+ * carry the fingerprint's primary hue with a subtle CSS shimmer animation.
  */
 
+import { type ReactElement } from "react"
 import type { VisualConfig } from "../lib/types"
-
-/** One pixel of a pixelated logo: its color and how opaque it should be. */
-export interface LogoPixel {
-  color: string  // CSS color, e.g. "rgb(r,g,b)"
-  opacity: number // 0 (transparent → pattern shows) … 1 (fully opaque)
-}
 
 interface Props {
   config: VisualConfig
   /** Accepted for renderer-agnostic callers; unused in this renderer. */
   interactive?: boolean
   className?: string
-  /**
-   * Optional 81-element array (9×9, row-major). The hash-derived binary pattern
-   * is always rendered as the base layer; these pixels are composited on top so
-   * the pattern shows through wherever the logo is light/transparent.
-   */
-  logoCorner?: LogoPixel[]
 }
 
 // ── Grid constants ────────────────────────────────────────────────────────────
 
 const GRID = 9 // main grid cells per axis
 const CORNER = 3 // detail corner: spans this many main cells
-const SUB_F = 3 // sub-cells per main cell inside corner
 const CELL = 100 / GRID // main-cell size in SVG units (viewBox 100×100)
-const SUB_TOTAL = CORNER * SUB_F // = 9 sub-cells per axis
-const SUB_CELL = (CORNER * CELL) / SUB_TOTAL // ≈ 3.333 SVG units
 
 // ── Fixed colors ──────────────────────────────────────────────────────────────
 
 const BG = "#0e0e0f"
-const INK = "rgb(15,15,17)"
-const PAPER = "rgb(238,238,235)"
+
+// ── Pixel font (3×5 dot-matrix, row-major, 1 = lit) ──────────────────────────
+
+const PIXEL_FONT: Record<string, number[]> = {
+  "0": [1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1],
+  "1": [0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1],
+  "2": [1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1],
+  "3": [1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1],
+  "4": [1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1],
+  "5": [1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1],
+  "6": [1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+  "7": [1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+  "8": [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+  "9": [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1],
+  R: [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+  E: [1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1],
+  P: [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0],
+}
+
+/** Renders a string using the 3×5 pixel font as SVG rect elements. Stride = 4px (3 wide + 1 gap). */
+function renderPixelString(
+  str: string,
+  x: number,
+  y: number,
+  ps: number,
+  fill: string,
+  opacity: number,
+  keyPfx: string
+): ReactElement[] {
+  const rects: ReactElement[] = []
+  for (let ci = 0; ci < str.length; ci++) {
+    const bitmap = PIXEL_FONT[str[ci]]
+    if (!bitmap) continue
+    const cx = x + ci * 4 * ps
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 3; col++) {
+        if (bitmap[row * 3 + col]) {
+          rects.push(
+            <rect
+              key={`${keyPfx}-${ci}-${row}-${col}`}
+              x={cx + col * ps}
+              y={y + row * ps}
+              width={ps}
+              height={ps}
+              fill={fill}
+              opacity={opacity}
+            />
+          )
+        }
+      }
+    }
+  }
+  return rects
+}
 
 // ── Mini constants ────────────────────────────────────────────────────────────
 
@@ -54,7 +91,6 @@ const MINI_SIZE = 3
 const MINI_CELL = 100 / MINI_SIZE // each mini cell = 33.33 SVG units
 
 // ── Pattern remap ─────────────────────────────────────────────────────────────
-
 
 // ── Math helpers ──────────────────────────────────────────────────────────────
 
@@ -95,11 +131,7 @@ function hslCss(hNorm: number, s: number, l: number): string {
 // Concentric rings with radial depth gradient.
 // Valleys (dark inter-ring areas) darken progressively toward the center,
 // creating a subtle concave bowl / tunnel feel.
-function cellPattern(
-  cx: number,
-  cy: number,
-  patternFrequency: number
-): number {
+function cellPattern(cx: number, cy: number, patternFrequency: number): number {
   const nx = ((cx + 0.5) / GRID) * 2 - 1
   const ny = ((cy + 0.5) / GRID) * 2 - 1
   const r = Math.sqrt(nx * nx + ny * ny)
@@ -117,7 +149,6 @@ function cellPattern(
 export function FingerprintSquares({
   config,
   className = "w-full h-full",
-  logoCorner,
 }: Props) {
   const seed1 = config.patternDensity * 100 + config.shimmerIntensity * 10
   const seed2 = config.breatheScale * 100 + config.colorShift * 100
@@ -152,7 +183,9 @@ export function FingerprintSquares({
           // The very center cell is always a bright accent with shimmer.
           const isCenter = cx === MINI_CENTER + 1 && cy === MINI_CENTER + 1
           if (isCenter) {
-            const delay = (cellHash(cx + 89.7, cy + 71.3, seed1, seed2) * 2).toFixed(2)
+            const delay = (
+              cellHash(cx + 89.7, cy + 71.3, seed1, seed2) * 2
+            ).toFixed(2)
             return (
               <rect
                 key={`m-${cx}-${cy}`}
@@ -224,41 +257,39 @@ export function FingerprintSquares({
         })
       )}
 
-      {/* ── Detail corner — 9×9 binary sub-grid (top-left) ── */}
-      {/* Base layer: always the hash-derived binary pattern; dimmed when logo overlays it */}
-      <g opacity={logoCorner ? 0.1 : 1}>
-        {Array.from({ length: SUB_TOTAL }, (_, sy) =>
-          Array.from({ length: SUB_TOTAL }, (_, sx) => (
-            <rect
-              key={`s-${sx}-${sy}`}
-              x={sx * SUB_CELL}
-              y={sy * SUB_CELL}
-              width={SUB_CELL}
-              height={SUB_CELL}
-              fill={cellHash(sx + 97.3, sy + 113.7, seed1, seed2) > 0.5 ? INK : PAPER}
-            />
-          ))
-        )}
-      </g>
-      {/* Logo overlay: composited on top; opacity reveals the pattern behind */}
-      {logoCorner &&
-        Array.from({ length: SUB_TOTAL }, (_, sy) =>
-          Array.from({ length: SUB_TOTAL }, (_, sx) => {
-            const p = logoCorner[sy * SUB_TOTAL + sx]
-            if (p.opacity < 0.04) return null
-            return (
-              <rect
-                key={`l-${sx}-${sy}`}
-                x={sx * SUB_CELL}
-                y={sy * SUB_CELL}
-                width={SUB_CELL}
-                height={SUB_CELL}
-                fill={p.color}
-                opacity={p.opacity}
-              />
-            )
-          })
-        )}
+      {/* ── Reputation corner (top-left 3×3) ── */}
+      {(() => {
+        const cw = CORNER * CELL // ≈ 33.33 SVG units
+        const score = config.reputationScore
+        const scoreStr = String(score)
+
+        // Scale pixel size down for wider numbers so they fit in the corner.
+        const ps = scoreStr.length >= 3 ? 2.2 : 2.8
+        const scoreW = (scoreStr.length * 4 - 1) * ps
+        const scoreX = (cw - scoreW) / 2
+        const scoreY = (cw - 5 * ps) / 2 // vertically centered
+
+        // Match AgentRegistry reputationColor thresholds: emerald-500 / amber-500 / red-500
+        const scoreColor =
+          score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#ef4444"
+
+        return (
+          <g>
+            <rect width={cw} height={cw} fill={BG} />
+            <g>
+              {renderPixelString(
+                scoreStr,
+                scoreX,
+                scoreY,
+                ps,
+                scoreColor,
+                0.92,
+                "sc"
+              )}
+            </g>
+          </g>
+        )
+      })()}
     </svg>
   )
 }
@@ -297,7 +328,9 @@ export function FingerprintMini({
       <rect
         width="100"
         height="100"
-        fill={`hsl(${hue},${(config.primarySaturation * 40 + 10).toFixed(1)}%,4%)`}
+        fill={`hsl(${hue},${(config.primarySaturation * 40 + 10).toFixed(
+          1
+        )}%,4%)`}
       />
 
       {Array.from({ length: MINI_SIZE }, (_, localCy) =>
@@ -307,7 +340,9 @@ export function FingerprintMini({
 
           // Center cell: always bright accent with shimmer.
           if (localCx === 1 && localCy === 1) {
-            const delay = (cellHash(cx + 89.7, cy + 71.3, seed1, seed2) * 2).toFixed(2)
+            const delay = (
+              cellHash(cx + 89.7, cy + 71.3, seed1, seed2) * 2
+            ).toFixed(2)
             return (
               <rect
                 key={`mini-${localCx}-${localCy}`}

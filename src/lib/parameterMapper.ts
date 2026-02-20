@@ -12,7 +12,8 @@
  *  16-17 Particle density
  *  18-19 Waveform / displacement amplitude
  *  20-23 Animation behavior modifiers
- *  24-31 Reserved (future visual axes)
+ *  24    Reputation score placeholder (0–100)
+ *  25-31 Reserved (future visual axes)
  */
 
 import { byteToFloat, byteToIndex } from './hash'
@@ -99,6 +100,10 @@ export function mapHashToConfig(bytes: Uint8Array): VisualConfig {
   const colorShift = byteToFloat(bytes[22], 0, 0.3)
   const breatheScale = byteToFloat(bytes[23], 0, 0.15)
 
+  // --- Reputation score placeholder (byte 24) ---
+  // Derived from reserved hash bytes; will be replaced by ERC-8004 on-chain value.
+  const reputationScore = Math.round(byteToFloat(bytes[24], 0, 100))
+
   return {
     primaryHue,
     primarySaturation,
@@ -120,5 +125,6 @@ export function mapHashToConfig(bytes: Uint8Array): VisualConfig {
     shimmerIntensity,
     colorShift,
     breatheScale,
+    reputationScore,
   }
 }
