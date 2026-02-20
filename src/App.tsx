@@ -26,7 +26,7 @@ function GridItem({ input }: { input: string }) {
       className="flex flex-col gap-1"
     >
       <div
-        className="rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800"
+        className="rounded overflow-hidden bg-zinc-900 border border-zinc-800"
         style={{ aspectRatio: "1" }}
       >
         <FingerprintSquares config={config} interactive={false} />
@@ -110,7 +110,7 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
-                className="rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900"
+                className="rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900"
               >
                 <FingerprintSquares config={mainConfig} interactive />
               </motion.div>
@@ -163,7 +163,7 @@ export default function App() {
               <button
                 key={ex}
                 onClick={() => handleExample(ex)}
-                className="focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-xl"
+                className="focus:outline-none focus:ring-1 focus:ring-white rounded "
               >
                 <GridItem input={ex} />
               </button>
