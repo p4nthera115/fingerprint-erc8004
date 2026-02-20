@@ -370,16 +370,6 @@ function AgentIDCard({
                   {formatNumber(agent.interactions)}
                 </p>
               </div>
-              {config && (
-                <div>
-                  <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-wide">
-                    Geometry
-                  </p>
-                  <p className="text-xs text-zinc-400 mt-0.5 font-mono capitalize">
-                    {config.geometryClass}
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Hash */}
